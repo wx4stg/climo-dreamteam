@@ -276,6 +276,7 @@ def generatePlot(filename, startDate, endDate):
     avgFig.savefig("output-avg-"+ targetDates[0].strftime("%Y-%m-%d") +"-WINDS.png")
     highFig.savefig("output-high-"+ targetDates[0].strftime("%Y-%m-%d") +"-WINDS.png")
     lowFig.savefig("output-low-"+ targetDates[0].strftime("%Y-%m-%d") +"-WINDS.png")
+    plt.close("all")
 
 
 if __name__ == "__main__":
