@@ -14,7 +14,7 @@ def generatePlot(filename, startDate, endDate):
     # Read csv data
     tempValidReports = list()
     windValidReports = list()
-    targetDates = [startDate + dt.timedelta(days=x) for x in range((endDate - startDate).days)]
+    targetDates = [startDate + dt.timedelta(days=x) for x in range((endDate - startDate).days + 1)]
 
     with open(filename) as asosCSVFile:
         csvRead = csv.DictReader(asosCSVFile, delimiter=",")
@@ -182,7 +182,7 @@ def generatePlot(filename, startDate, endDate):
     avgFig = plt.figure()
     plt.title("Average T deviations from statewide avg. T\n" + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
     highFig = plt.figure()
-    plt.title("High T deviations from statewide avg. high T, " + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
+    plt.title("High T deviations from statewide avg. high T\n" + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
     lowFig = plt.figure()
     plt.title("Low T deviations from statewide avg. low T\n" + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
     avgAx = avgFig.add_subplot(1, 1, 1, projection=ccrs.LambertCylindrical())
