@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # Graphic generation for ATMO 324 by Sam Gardner <stgardner4@tamu.edu>, Drew Davis <acdavis01@tamu.edu>, Ashley Palm <ashleyp0301@tamu.edu>
 
+import pandas as pd
+from metpy import calc as mpcalc
+from metpy.units import units
 import csv
 import datetime as dt
 from matplotlib import pyplot as plt
@@ -11,159 +14,48 @@ import numpy as np
 import time
 
 def generatePlot(filename, startDate, endDate):
-    # Read csv data
-    tempValidReports = list()
-    windValidReports = list()
-    targetDates = [startDate + dt.timedelta(days=x) for x in range((endDate - startDate).days + 1)]
-
-    with open(filename) as asosCSVFile:
-        csvRead = csv.DictReader(asosCSVFile, delimiter=",")
-        for row in csvRead:
-            if (row["tmpc"] != "null"):
-                tempValidReports.append(row)
-            if (row["drct"] != "null"):
-                if (row["sknt"] != "null"):
-                    windValidReports.append(row)
-    # make dates in csv use datetime objects
-    tempReportsOnTargetDates = list()
-    tempsOnTargetDates = list()
-    windReportsOnTargetDates = list()
-    windDirsOnTargetDates = list()
-    windKtsOnTargetDates = list()
-    for targetDT in targetDates:
-        targetDateStr = targetDT.strftime("%Y-%m-%d")
-        for report in tempValidReports:
-            if targetDateStr in report["valid"]:
-                tempsOnTargetDates.append(float(report["tmpc"]))
-                tempReportsOnTargetDates.append(report)
-        for report in windValidReports:
-            if targetDateStr in report["valid"]:
-                windDirsOnTargetDates.append(float(report["drct"]))
-                windKtsOnTargetDates.append(float(report["sknt"]))
-                windReportsOnTargetDates.append(report)
-
-    # Get overall average temperature during event
+    # read and parse csv
+    pandasData = pd.read_csv(filename, na_values="null")
+    pandasData = pandasData.dropna(how="any", subset=["station", "valid", "lon", "lat", "tmpc", "drct", "sknt"])
+    # convert valid column to datetime objects
+    pandasData["valid"] = pd.to_datetime(pandasData["valid"], dayfirst=True)
+    # filter to just the dates we want
+    targetData = pandasData.loc[(pandasData["valid"] >= startDate) & (pandasData["valid"] <= endDate)]
+    # get average temperature over the whole state throughout the event
+    tempsOnTargetDates = targetData["tmpc"].tolist()
     averageTempAllStations = sum(tempsOnTargetDates) / len(tempsOnTargetDates)
-
-    # Create list of temp dicts for all reports we're interested in
-    deviationRpts = list()
-    highRpts = dict()
-    lowRpts = dict()
-    tempDictOfStations = dict()
-    for targetedReport in tempReportsOnTargetDates:
-        deviationReport = { "Station ID" : targetedReport["station"],
-                        "Date/Time" : targetedReport["valid"],
-                        "Latitude" : targetedReport["lat"],
-                        "Longitude" : targetedReport["lon"],
-                        "Temperature" : float(targetedReport["tmpc"]),
-                        "Temp deviation" : float(float(targetedReport["tmpc"]) - averageTempAllStations)
-                        }
-        deviationRpts.append(deviationReport)
-        if targetedReport["station"] in highRpts.keys():
-            if targetedReport["tmpc"] > highRpts[targetedReport["station"]]["tmpc"]:
-                highRpts[targetedReport["station"]] = targetedReport
-        else:
-            highRpts[targetedReport["station"]] = targetedReport
-        if targetedReport["station"] in lowRpts.keys():
-            if targetedReport["tmpc"] < lowRpts[targetedReport["station"]]["tmpc"]:
-                lowRpts[targetedReport["station"]] = targetedReport
-        else:
-            lowRpts[targetedReport["station"]] = targetedReport
-            
-        if targetedReport["station"] not in tempDictOfStations.keys():
-            stationDict = { "lat" : targetedReport["lat"], 
-                        "lon" : targetedReport["lon"] }
-            tempDictOfStations[targetedReport["station"]] = stationDict
-    # Create list of wind dicts for all reports we're interested in
-    windRpts = list()
-    windDictOfStations = dict()
-    for targetedReport in windReportsOnTargetDates:
-        windReport = { "Station ID" : targetedReport["station"],
-                        "Date/Time" : targetedReport["valid"],
-                        "Latitude" : targetedReport["lat"],
-                        "Longitude" : targetedReport["lon"],
-                        "u wind" : 
-                        (float(targetedReport["sknt"])*-1*np.sin(np.deg2rad(float(targetedReport["drct"])))), 
-                        "v wind" : 
-                        (float(targetedReport["sknt"])*-1*np.cos(np.deg2rad(float(targetedReport["drct"]))))
-                        }
-        windRpts.append(windReport)
-        
-        if targetedReport["station"] not in windDictOfStations.keys():
-            stationDict = { "lat" : targetedReport["lat"], 
-                        "lon" : targetedReport["lon"] }
-            windDictOfStations[targetedReport["station"]] = stationDict
-            
-
-    # Get average deviation for each station across the event 
-    # maybe don't do this in the future
-    # ...could use an animated GIF instead of single frame to show change over time
-    tempStationList = tempDictOfStations.keys()
-    tempLatList = list()
-    tempLonList = list()
-    deviationList = list()
-    for station in tempStationList:
-        tempLatList.append(tempDictOfStations[station]["lat"])
-        tempLonList.append(tempDictOfStations[station]["lon"])
-        rollingSum = 0.0
-        numOfRpts = 0
-        for targetReport in deviationRpts:
-            if targetReport["Station ID"] == station:
-                rollingSum = rollingSum + targetReport["Temp deviation"]
-                numOfRpts = numOfRpts + 1
-        deviationAvg = (rollingSum / numOfRpts)
-        deviationList.append(deviationAvg)
-    highLatList = list()
-    highLonList = list()
-    highDevList = list()
-    # Get average high temperature
-    rollingHigh = 0.0
-    numHighRpts = 0
-    for station in highRpts.keys():
-        rollingHigh = rollingHigh + float(highRpts[station]["tmpc"])
-        numHighRpts = numHighRpts + 1
-    highAvg = (rollingHigh / numHighRpts)
-    for station in highRpts.keys():
-        highLatList.append(highRpts[station]["lat"])
-        highLonList.append(highRpts[station]["lon"])
-        highDevList.append(float(highRpts[station]["tmpc"]) - highAvg)
-    lowLatList = list()
-    lowLonList = list()
-    lowDevList = list()
-    rollingLow = 0.0
-    numLowRpts = 0
-    for station in lowRpts.keys():
-        rollingLow = rollingLow + float(lowRpts[station]["tmpc"])
-        numLowRpts = numLowRpts + 1
-    lowAvg = (rollingLow / numLowRpts)
-    for station in lowRpts.keys():
-        lowLatList.append(lowRpts[station]["lat"])
-        lowLonList.append(lowRpts[station]["lon"])
-        lowDevList.append(float(lowRpts[station]["tmpc"]) - lowAvg)
-    # Get average wind for each station across the event
-    windStationList = windDictOfStations.keys()
-    windLatList = list()
-    windLonList = list()
-    uWindList = list()
-    vWindList = list()
-    for station in windStationList:
-        windLatList.append(float(windDictOfStations[station]["lat"]))
-        windLonList.append(float(windDictOfStations[station]["lon"]))
-        rollingSumU = 0.0
-        rollingSumV = 0.0
-        numOfRpts = 0
-        for targetReport in windRpts:
-            if targetReport["Station ID"] == station:
-                rollingSumU = rollingSumU + targetReport["u wind"]
-                rollingSumV = rollingSumU + targetReport["v wind"]
-                numOfRpts = numOfRpts + 1
-        uWindAvg = (rollingSumU / numOfRpts)
-        uWindList.append(uWindAvg)
-        vWindAvg = (rollingSumV / numOfRpts)
-        vWindList.append(vWindAvg)
-
-    ## interpolate individual stations into mesh covering the whole area
-    # get min/max bounds
+    # Get deviations of every report from the average
+    deviations = pandasData["tmpc"] - averageTempAllStations
+    targetData["deviation"] = deviations
+    # convert wind dir and speed into u and v components
+    windDir = targetData["drct"].values
+    windSpd = targetData["sknt"].values * units.knots
+    uWind, vWind = mpcalc.wind_components(windSpd, windDir)
+    targetData["uWind"] = uWind
+    targetData["vWind"] = vWind
+    # Average the temperature reports for each station
+    averagedData = pd.DataFrame(columns=["station", "lon", "lat", "uWind", "vWind", "avgT", "lowT", "highT", "avgD"])
+    for stationID in targetData["station"].values:
+        if stationID in averagedData["station"].values:
+            continue
+        stationData = targetData.loc[targetData["station"] == stationID]
+        avgTempAtStation = sum(stationData["tmpc"].values) / len(stationData["tmpc"].values)
+        # Also collect the max and min temperature reported by each station
+        highT = max(stationData["tmpc"].values)
+        lowT = min(stationData["tmpc"].values)
+        avgDeviationAtStation = sum(stationData["deviation"].values) / len(stationData["deviation"].values)
+        avgUWindAtStation = sum(stationData["uWind"].values) / len(stationData["uWind"].values)
+        avgVWindAtStation = sum(stationData["vWind"].values) / len(stationData["vWind"].values)
+        stationAvgData = pd.DataFrame([[stationID, stationData["lon"].values[0], stationData["lat"].values[0], avgUWindAtStation, avgVWindAtStation, avgTempAtStation, highT, lowT, avgDeviationAtStation]], columns=["station", "lon", "lat", "uWind", "vWind", "avgT", "lowT", "highT", "avgD"])
+        averagedData = pd.concat([averagedData, stationAvgData])
+    # average the min and max temperatures to generate deviations for each station
+    avgHigh = sum(averagedData["highT"].values) / len(averagedData["highT"].values)
+    highDeviations = averagedData["highT"] - avgHigh
+    averagedData["highD"] = highDeviations
+    avgLow = sum(averagedData["lowT"].values) / len(averagedData["lowT"].values)
+    lowDeviations = averagedData["lowT"] - avgLow
+    averagedData["lowD"] = lowDeviations
+    # Interpolate temp data where we have no stations
     latmin = 25.837377
     latmax = 36.600704
     lonmin = -106.745646
@@ -173,18 +65,17 @@ def generatePlot(filename, startDate, endDate):
     latGrid = np.linspace(latmin, latmax, 1000)
     lonGrid, latGrid = np.meshgrid(lonGrid, latGrid)
     # get interpolated data
-    avgTempGrid = griddata((tempLonList, tempLatList), deviationList, (lonGrid, latGrid), method="linear")
-    highTempGrid = griddata((highLonList, highLatList), highDevList, (lonGrid, latGrid), method="linear")
-    lowTempGrid = griddata((lowLonList, lowLatList), lowDevList, (lonGrid, latGrid), method="linear")
-
+    avgTempGrid = griddata((averagedData["lon"].values, averagedData["lat"].values), averagedData["avgD"].values, (lonGrid, latGrid), method="linear")
+    highTempGrid = griddata((averagedData["lon"].values, averagedData["lat"].values), averagedData["highD"].values, (lonGrid, latGrid), method="linear")
+    lowTempGrid = griddata((averagedData["lon"].values, averagedData["lat"].values), averagedData["lowD"].values, (lonGrid, latGrid), method="linear")
 
     # Create plot figure
     avgFig = plt.figure()
-    plt.title("Average T deviations from statewide avg. T\n" + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
+    plt.title("Average T deviations from statewide avg. T\n" + startDate.strftime("%Y-%m-%d") + " through " + endDate.strftime("%Y-%m-%d"))
     highFig = plt.figure()
-    plt.title("High T deviations from statewide avg. high T\n" + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
+    plt.title("High T deviations from statewide avg. high T\n" + startDate.strftime("%Y-%m-%d") + " through " + endDate.strftime("%Y-%m-%d"))
     lowFig = plt.figure()
-    plt.title("Low T deviations from statewide avg. low T\n" + targetDates[0].strftime("%Y-%m-%d") + " through " + targetDates[-1].strftime("%Y-%m-%d"))
+    plt.title("Low T deviations from statewide avg. low T\n" + startDate.strftime("%Y-%m-%d") + " through " + endDate.strftime("%Y-%m-%d"))
     avgAx = avgFig.add_subplot(1, 1, 1, projection=ccrs.LambertCylindrical())
     avgAx.add_feature(cfeat.LAND)
     avgAx.add_feature(cfeat.OCEAN)
@@ -212,12 +103,21 @@ def generatePlot(filename, startDate, endDate):
     lowAx.add_feature(cfeat.RIVERS, alpha=0.5)
     lowAx.add_feature(cfeat.STATES, linestyle=":")
     lowAx.set_extent((lonmin, lonmax, latmin, latmax))
+    avgAx.outline_patch.set_visible(False)
+    highAx.outline_patch.set_visible(False)
+    lowAx.outline_patch.set_visible(False)
 
     # Plot temp contour field
-    avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
-    highAx.contourf(lonGrid, latGrid, highTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
-    lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")    
+    avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
+    highContour = highAx.contourf(lonGrid, latGrid, highTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
+    lowContour =lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")    
         
+    # Add color bars
+    avgFig.colorbar(avgContour)
+    highFig.colorbar(highContour)
+    lowFig.colorbar(lowContour)
+
+
     # Plot cities
     hou_lat = 29.7604
     hou_lon = -95.3698
@@ -263,43 +163,43 @@ def generatePlot(filename, startDate, endDate):
     lowAx.text(au_lon + .2, au_lat - .4, 'Austin', horizontalalignment='right', transform=ccrs.PlateCarree(), c="g")
 
     # Save plots
-    avgFig.savefig("output-avg-"+ targetDates[0].strftime("%Y-%m-%d") +".png")
-    highFig.savefig("output-high-"+ targetDates[0].strftime("%Y-%m-%d") +".png")
-    lowFig.savefig("output-low-"+ targetDates[0].strftime("%Y-%m-%d") +".png")
+    avgFig.savefig("output-avg-"+ startDate.strftime("%Y-%m-%d") +".png")
+    highFig.savefig("output-high-"+ startDate.strftime("%Y-%m-%d") +".png")
+    lowFig.savefig("output-low-"+ startDate.strftime("%Y-%m-%d") +".png")
     
     # Plot wind barbs
+    windLonList = averagedData["lon"].values
+    windLatList = averagedData["lat"].values
+    uWindList = averagedData["uWind"].values
+    vWindList = averagedData["vWind"].values
     for idx in range(0, len(windLatList)):
         avgAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=5, transform=ccrs.PlateCarree())
         highAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=5, transform=ccrs.PlateCarree())
         lowAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=5, transform=ccrs.PlateCarree())
-        
-    avgFig.savefig("output-avg-"+ targetDates[0].strftime("%Y-%m-%d") +"-WINDS.png")
-    highFig.savefig("output-high-"+ targetDates[0].strftime("%Y-%m-%d") +"-WINDS.png")
-    lowFig.savefig("output-low-"+ targetDates[0].strftime("%Y-%m-%d") +"-WINDS.png")
+    
+    avgFig.savefig("output-avg-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
+    highFig.savefig("output-high-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
+    lowFig.savefig("output-low-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
     plt.close("all")
-
 
 if __name__ == "__main__":
     start_exec = time.time()
     print("Generating pre-event 2011...")
-    generatePlot("asos-2011-full.csv", dt.datetime(2011, 1, 28, 0, 0, 0), dt.datetime(2011, 1, 31, 0, 0, 0))
+    generatePlot("asos-2011-full.csv", dt.datetime(2011, 1, 28, 0, 0, 0), dt.datetime(2011, 1, 31, 23, 59, 59))
     print("11% Generating during event 2011...")
-    generatePlot("asos-2011-full.csv", dt.datetime(2011, 2, 1, 0, 0, 0), dt.datetime(2011, 2, 4, 0, 0, 0))
+    generatePlot("asos-2011-full.csv", dt.datetime(2011, 2, 1, 0, 0, 0), dt.datetime(2011, 2, 4, 23, 59, 59))
     print("22% Generating post-event 2011...")
-    generatePlot("asos-2011-full.csv", dt.datetime(2011, 2, 5, 0, 0, 0), dt.datetime(2011, 2, 8, 0, 0, 0))
+    generatePlot("asos-2011-full.csv", dt.datetime(2011, 2, 5, 0, 0, 0), dt.datetime(2011, 2, 8, 23, 59, 59))
     print("33% Generating pre-event 2017...")
-    generatePlot("asos-2017-full.csv", dt.datetime(2017, 12, 2, 0, 0, 0), dt.datetime(2017, 12, 5, 0, 0, 0))
+    generatePlot("asos-2017-full.csv", dt.datetime(2017, 12, 2, 0, 0, 0), dt.datetime(2017, 12, 5, 23, 59, 59))
     print("44% Generating during event 2017...")
-    generatePlot("asos-2017-full.csv", dt.datetime(2017, 12, 6, 0, 0, 0), dt.datetime(2017, 12, 8, 0, 0, 0))
+    generatePlot("asos-2017-full.csv", dt.datetime(2017, 12, 6, 0, 0, 0), dt.datetime(2017, 12, 8, 23, 59, 59))
     print("55% Generating post-event 2017...")
-    generatePlot("asos-2017-full.csv", dt.datetime(2017, 12, 9, 0, 0, 0), dt.datetime(2017, 12, 12, 0, 0, 0))
+    generatePlot("asos-2017-full.csv", dt.datetime(2017, 12, 9, 0, 0, 0), dt.datetime(2017, 12, 12, 23, 59, 59))
     print("66% Generating pre-event 2021...")
-    generatePlot("asos-2021-full.csv", dt.datetime(2021, 2, 10, 0, 0, 0), dt.datetime(2021, 2, 13, 0, 0, 0))
+    generatePlot("asos-2021-full.csv", dt.datetime(2021, 2, 10, 0, 0, 0), dt.datetime(2021, 2, 13, 23, 59, 59))
     print("77% Generating during event 2021...")
-    generatePlot("asos-2021-full.csv", dt.datetime(2021, 2, 14, 0, 0, 0), dt.datetime(2021, 2, 18, 0, 0, 0))
+    generatePlot("asos-2021-full.csv", dt.datetime(2021, 2, 14, 0, 0, 0), dt.datetime(2021, 2, 18, 23, 59, 59))
     print("88% Generating post-event 2021...")
-    generatePlot("asos-2021-full.csv", dt.datetime(2021, 2, 19, 0, 0, 0), dt.datetime(2021, 2, 22, 0, 0, 0))
+    generatePlot("asos-2021-full.csv", dt.datetime(2021, 2, 19, 0, 0, 0), dt.datetime(2021, 2, 22, 23, 59, 59))
     print("Done! (Took %s seconds)" % (time.time() - start_exec))
-
-    
-    
