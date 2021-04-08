@@ -2,6 +2,7 @@
 # Graphic generation for ATMO 324 by Sam Gardner <stgardner4@tamu.edu>, Drew Davis <acdavis01@tamu.edu>, Ashley Palm <ashleyp0301@tamu.edu>
 
 import pandas as pd
+pd.options.mode.chained_assignment = None
 from metpy import calc as mpcalc
 from metpy.units import units
 import csv
@@ -28,7 +29,7 @@ def generatePlot(filename, startDate, endDate):
     deviations = pandasData["tmpc"] - averageTempAllStations
     targetData["deviation"] = deviations
     # convert wind dir and speed into u and v components
-    windDir = targetData["drct"].values
+    windDir = targetData["drct"].values * units.degrees
     windSpd = targetData["sknt"].values * units.knots
     uWind, vWind = mpcalc.wind_components(windSpd, windDir)
     targetData["uWind"] = uWind
@@ -71,6 +72,7 @@ def generatePlot(filename, startDate, endDate):
 
     # Create plot figure
     avgFig = plt.figure()
+    plt.axis("off")
     plt.title("Average T deviations from statewide avg. T\n" + startDate.strftime("%Y-%m-%d") + " through " + endDate.strftime("%Y-%m-%d"))
     highFig = plt.figure()
     plt.title("High T deviations from statewide avg. high T\n" + startDate.strftime("%Y-%m-%d") + " through " + endDate.strftime("%Y-%m-%d"))
@@ -103,9 +105,6 @@ def generatePlot(filename, startDate, endDate):
     lowAx.add_feature(cfeat.RIVERS, alpha=0.5)
     lowAx.add_feature(cfeat.STATES, linestyle=":")
     lowAx.set_extent((lonmin, lonmax, latmin, latmax))
-    avgAx.outline_patch.set_visible(False)
-    highAx.outline_patch.set_visible(False)
-    lowAx.outline_patch.set_visible(False)
 
     # Plot temp contour field
     avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
