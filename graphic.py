@@ -5,7 +5,6 @@ import pandas as pd
 pd.options.mode.chained_assignment = None
 from metpy import calc as mpcalc
 from metpy.units import units
-import csv
 import datetime as dt
 from matplotlib import pyplot as plt
 from scipy.interpolate import griddata
@@ -13,6 +12,7 @@ from cartopy import crs as ccrs
 from cartopy import feature as cfeat
 import numpy as np
 import time
+import xarray as xr
 
 def generatePlot(filename, startDate, endDate):
     # read and parse csv
@@ -174,9 +174,9 @@ def generatePlot(filename, startDate, endDate):
     uWindList = averagedData["uWind"].values
     vWindList = averagedData["vWind"].values
     for idx in range(0, len(windLatList)):
-        avgAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=5, transform=ccrs.PlateCarree())
-        highAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=5, transform=ccrs.PlateCarree())
-        lowAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=5, transform=ccrs.PlateCarree())
+        avgAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=2, transform=ccrs.PlateCarree())
+        highAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=2, transform=ccrs.PlateCarree())
+        lowAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=2, transform=ccrs.PlateCarree())
     
     avgFig.savefig("output-avg-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
     highFig.savefig("output-high-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
