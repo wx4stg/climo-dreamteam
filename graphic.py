@@ -61,12 +61,13 @@ def generatePlot(filename, startDate, endDate):
     averagedData["lowD"] = lowDeviations
     # DEBUG: list highest and lowest deviations to remove outliers due to malfunctioning stations:
     if "-d" in argv:
-        print("Highest Avg: ", str(averagedData[averagedData.avgD == averagedData.avgD.max()]))
-        print("Lowest Avg: ", str(averagedData[averagedData.avgD == averagedData.avgD.min()]))
-        print("Highest High: ", str(averagedData[averagedData.highD == averagedData.highD.max()]))
-        print("Lowest High: ", str(averagedData[averagedData.highD == averagedData.highD.min()]))
-        print("Highest Low: ", str(averagedData[averagedData.lowD == averagedData.lowD.max()]))
-        print("Lowest Low: ", str(averagedData[averagedData.lowD == averagedData.lowD.min()]))
+        from tabulate import tabulate
+        print("Highest Avg: \n", str(averagedData[averagedData.avgD == averagedData.avgD.max()]), "\n\n")
+        print("Lowest Avg: \n", str(averagedData[averagedData.avgD == averagedData.avgD.min()]), "\n\n")
+        print("Highest High: \n", str(averagedData[averagedData.highD == averagedData.highD.max()]), "\n\n")
+        print("Lowest High: \n", str(averagedData[averagedData.highD == averagedData.highD.min()]), "\n\n")
+        print("Highest Low: \n", str(averagedData[averagedData.lowD == averagedData.lowD.max()]), "\n\n")
+        print("Lowest Low: \n", str(averagedData[averagedData.lowD == averagedData.lowD.min()]), "\n\n")
     # Interpolate temp data where we have no stations
     latmin = 25.837377
     latmax = 36.600704
@@ -120,9 +121,9 @@ def generatePlot(filename, startDate, endDate):
     lowAx.set_extent((lonmin, lonmax, latmin, latmax))
 
     # Plot temp contour field
-    avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(floor(averagedData.avgD.min()), ceil(averagedData.avgD.max()), 0.5), cmap="coolwarm")
-    highContour = highAx.contourf(lonGrid, latGrid, highTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(floor(averagedData.highD.min()), ceil(averagedData.highD.max()), 0.5), cmap="coolwarm")
-    lowContour =lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(floor(averagedData.lowD.min()), ceil(averagedData.lowD.max()), 0.5), cmap="coolwarm")    
+    avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange((floor(averagedData.avgD.min())-1), (ceil(averagedData.avgD.max())+1), 1), cmap="coolwarm")
+    highContour = highAx.contourf(lonGrid, latGrid, highTempGrid, transform=ccrs.PlateCarree(), levels=np.arange((floor(averagedData.highD.min())-1), (ceil(averagedData.highD.max())+1), 1), cmap="coolwarm")
+    lowContour =lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange((floor(averagedData.lowD.min())-1), (ceil(averagedData.lowD.max())+1), 1), cmap="coolwarm")    
         
     # Add color bars
     avgFig.colorbar(avgContour)
