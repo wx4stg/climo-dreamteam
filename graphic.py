@@ -13,6 +13,8 @@ from cartopy import feature as cfeat
 import numpy as np
 import time
 import xarray as xr
+from math import floor
+from math import ceil
 
 def generatePlot(filename, startDate, endDate):
     # read and parse csv
@@ -109,9 +111,9 @@ def generatePlot(filename, startDate, endDate):
     lowAx.set_extent((lonmin, lonmax, latmin, latmax))
 
     # Plot temp contour field
-    avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
-    highContour = highAx.contourf(lonGrid, latGrid, highTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")
-    lowContour =lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(-15, 10, 1), cmap="coolwarm")    
+    avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(floor(averagedData.avgD.min()), ceil(averagedData.avgD.max()), 0.5), cmap="coolwarm")
+    highContour = highAx.contourf(lonGrid, latGrid, highTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(floor(averagedData.highD.min()), ceil(averagedData.highD.max()), 0.5), cmap="coolwarm")
+    lowContour =lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange(floor(averagedData.lowD.min()), ceil(averagedData.lowD.max()), 0.5), cmap="coolwarm")    
         
     # Add color bars
     avgFig.colorbar(avgContour)
@@ -174,9 +176,9 @@ def generatePlot(filename, startDate, endDate):
     uWindList = averagedData["uWind"].values
     vWindList = averagedData["vWind"].values
     for idx in range(0, len(windLatList)):
-        avgAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=2, transform=ccrs.PlateCarree())
-        highAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=2, transform=ccrs.PlateCarree())
-        lowAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=2, transform=ccrs.PlateCarree())
+        avgAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=4, transform=ccrs.PlateCarree())
+        highAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=4, transform=ccrs.PlateCarree())
+        lowAx.barbs(np.array([windLonList[idx]]), np.array([windLatList[idx]]), np.array([uWindList[idx]]), np.array([vWindList[idx]]), length=4, transform=ccrs.PlateCarree())
     
     avgFig.savefig("output-avg-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
     highFig.savefig("output-high-"+ startDate.strftime("%Y-%m-%d") +"-WINDS.png")
