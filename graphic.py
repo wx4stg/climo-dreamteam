@@ -15,6 +15,7 @@ import time
 import xarray as xr
 from math import floor
 from math import ceil
+from sys import argv
 
 def generatePlot(filename, startDate, endDate):
     # read and parse csv
@@ -58,6 +59,14 @@ def generatePlot(filename, startDate, endDate):
     avgLow = sum(averagedData["lowT"].values) / len(averagedData["lowT"].values)
     lowDeviations = averagedData["lowT"] - avgLow
     averagedData["lowD"] = lowDeviations
+    # DEBUG: list highest and lowest deviations to remove outliers due to malfunctioning stations:
+    if "-d" in argv:
+        print("Highest Avg: ", str(averagedData[averagedData.avgD == averagedData.avgD.max()]))
+        print("Lowest Avg: ", str(averagedData[averagedData.avgD == averagedData.avgD.min()]))
+        print("Highest High: ", str(averagedData[averagedData.highD == averagedData.highD.max()]))
+        print("Lowest High: ", str(averagedData[averagedData.highD == averagedData.highD.min()]))
+        print("Highest Low: ", str(averagedData[averagedData.lowD == averagedData.lowD.max()]))
+        print("Lowest Low: ", str(averagedData[averagedData.lowD == averagedData.lowD.min()]))
     # Interpolate temp data where we have no stations
     latmin = 25.837377
     latmax = 36.600704
