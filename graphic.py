@@ -122,9 +122,12 @@ def generatePlot(filename, startDate, endDate):
     lowContour =lowAx.contourf(lonGrid, latGrid, lowTempGrid, transform=ccrs.PlateCarree(), levels=np.arange((floor(averagedData.lowD.min())-1), (ceil(averagedData.lowD.max())+1), .1), cmap="coolwarm")    
         
     # Add color bars
-    avgFig.colorbar(avgContour)
-    highFig.colorbar(highContour)
-    lowFig.colorbar(lowContour)
+    avgBar = avgFig.colorbar(avgContour)
+    avgBar.set_label("Temp Deviation (°C)")
+    highBar = highFig.colorbar(highContour)
+    highBar.set_label("Temp Deviation (°C)")
+    lowBar = lowFig.colorbar(lowContour)
+    lowBar.set_label("Temp Deviation (°C)")
 
 
     # Plot cities
