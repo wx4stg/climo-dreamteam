@@ -97,6 +97,7 @@ def generatePlot(filename, startDate, endDate):
     avgAx.add_feature(cfeat.RIVERS, alpha=0.5)
     avgAx.add_feature(cfeat.STATES, linestyle=":")
     avgAx.set_extent((lonmin, lonmax, latmin, latmax))
+    avgAx.gridlines(crs=ccrs.PlateCarree(), draw_labels=True)
     highAx = highFig.add_subplot(1, 1, 1, projection=ccrs.LambertCylindrical())
     highAx.add_feature(cfeat.LAND)
     highAx.add_feature(cfeat.OCEAN)
@@ -106,6 +107,7 @@ def generatePlot(filename, startDate, endDate):
     highAx.add_feature(cfeat.RIVERS, alpha=0.5)
     highAx.add_feature(cfeat.STATES, linestyle=":")
     highAx.set_extent((lonmin, lonmax, latmin, latmax))
+    highAx.gridlines(crs=ccrs.PlateCarree(), draw_labels=True)
     lowAx = lowFig.add_subplot(1, 1, 1, projection=ccrs.LambertCylindrical())
     lowAx.add_feature(cfeat.LAND)
     lowAx.add_feature(cfeat.OCEAN)
@@ -115,6 +117,7 @@ def generatePlot(filename, startDate, endDate):
     lowAx.add_feature(cfeat.RIVERS, alpha=0.5)
     lowAx.add_feature(cfeat.STATES, linestyle=":")
     lowAx.set_extent((lonmin, lonmax, latmin, latmax))
+    lowAx.gridlines(crs=ccrs.PlateCarree(), draw_labels=True)
 
     # Plot temp contour field
     avgContour = avgAx.contourf(lonGrid, latGrid, avgTempGrid, transform=ccrs.PlateCarree(), levels=np.arange((floor(averagedData.avgD.min())-1), (ceil(averagedData.avgD.max())+1), .1), cmap="coolwarm")
